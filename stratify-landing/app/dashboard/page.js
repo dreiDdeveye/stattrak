@@ -47,7 +47,11 @@ export default function DashboardPage() {
     setSyncMessage(null);
     try {
       const result = await api.matches.sync();
-      setSyncMessage(result.message);
+      if (result.message?.includes("auth code")) {
+        setSyncMessage("Set your auth code in Settings first!");
+      } else {
+        setSyncMessage(result.message);
+      }
       setTimeout(() => setSyncMessage(null), 5000);
     } catch (err) {
       setSyncMessage("Sync failed");
@@ -111,8 +115,11 @@ export default function DashboardPage() {
           <button onClick={handleSync} disabled={syncing} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, border: "none", cursor: syncing ? "wait" : "pointer", width: "100%", background: syncing ? "rgba(0,255,163,0.08)" : "transparent", color: syncing ? "#00ffa3" : "rgba(255,255,255,0.4)", fontSize: 13, fontFamily: "'Outfit', sans-serif" }}>
             <Icons.Zap s={18} />{!sidebarCollapsed && <span>{syncing ? "Syncing..." : "Sync Matches"}</span>}
           </button>
+          <a href="/settings" style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, textDecoration: "none", color: "rgba(255,255,255,0.4)", fontSize: 13, fontFamily: "'Outfit', sans-serif" }}>
+            <DashIcons.Settings s={18} />{!sidebarCollapsed && <span>Settings</span>}
+          </a>
           <a href={api.auth.logoutUrl} style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 12px", borderRadius: 8, textDecoration: "none", color: "rgba(255,255,255,0.3)", fontSize: 13, fontFamily: "'Outfit', sans-serif" }}>
-            <DashIcons.Settings s={18} />{!sidebarCollapsed && <span>Logout</span>}
+            <DashIcons.User s={18} />{!sidebarCollapsed && <span>Logout</span>}
           </a>
         </div>
       </aside>
