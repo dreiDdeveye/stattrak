@@ -1,0 +1,96 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #06080e;
+  --accent: #00ffa3;
+  --cyan: #00d4ff;
+  --purple: #a855f7;
+  --warn: #ffaa00;
+  --danger: #ff4466;
+  --orange: #ff6b35;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'Outfit', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  background: var(--bg);
+  color: #fff;
+}
+
+::selection {
+  background: rgba(0, 255, 163, 0.2);
+  color: #fff;
+}
+
+/* Keyframes */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes fadeLeft {
+  from { opacity: 0; transform: translateX(40px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes bounce {
+  0%, 100% { transform: translateX(-50%) translateY(0); }
+  50% { transform: translateX(-50%) translateY(8px); }
+}
+
+@keyframes scan {
+  0% { top: 0%; }
+  100% { top: 100%; }
+}
+
+.anim-fadeUp { animation: fadeUp 0.8s ease-out; }
+.anim-fadeUp-1 { animation: fadeUp 0.8s ease-out 0.15s both; }
+.anim-fadeUp-2 { animation: fadeUp 0.8s ease-out 0.3s both; }
+.anim-fadeUp-3 { animation: fadeUp 0.8s ease-out 0.45s both; }
+.anim-fadeDown { animation: fadeDown 0.6s ease-out; }
+.anim-fadeLeft { animation: fadeLeft 1s ease-out 0.3s both; }
+.anim-pulse { animation: pulse 2s infinite; }
+.anim-float { animation: float 4s ease-in-out infinite; }
+.anim-bounce { animation: bounce 2s infinite; }
+.anim-scan { animation: scan 8s linear infinite; }
+
+/* Mobile */
+@media (max-width: 768px) {
+  .nav-links { display: none !important; }
+  .mobile-menu-btn { display: block !important; }
+  .hero-chart { display: none !important; }
+}
+
+@media (max-width: 640px) {
+  section { padding-left: 16px !important; padding-right: 16px !important; }
+}

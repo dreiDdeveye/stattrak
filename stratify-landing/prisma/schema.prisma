@@ -1,0 +1,369 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============================================================
+// USER
+// ============================================================
+model User {
+  id            String    @id @default(cuid())
+  steamId       String    @unique
+  username      String
+  avatar        String?
+  profileUrl    String?
+  authCode      String?   // Steam match sharing auth code
+  lastSharecode String?   // Last known sharecode for incremental fetch
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLogin     DateTime  @default(now())
+  lastSync      DateTime?
+
+  matchPlayers  MatchPlayer[]
+  stats         PlayerStats?
+  sessions      Session[]
+}
+
+// ============================================================
+// SESSION (for auth)
+// ============================================================
+model Session {
+  id        String   @id @default(cuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([expiresAt])
+}
+
+// ============================================================
+// MATCH
+// ============================================================
+model Match {
+  id            String    @id @default(cuid())
+  sharecode     String    @unique
+  matchId       BigInt?   // Valve match ID from sharecode decode
+  map           String
+  date          DateTime
+  demoUrl       String?
+  demoParsed    Boolean   @default(false)
+  duration      Int?      // seconds
+  scoreCT       Int       @default(0)
+  scoreT        Int       @default(0)
+  maxRounds     Int       @default(24)
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  players       MatchPlayer[]
+  rounds        Round[]
+  killEvents    KillEvent[]
+  damageEvents  DamageEvent[]
+  utilityEvents UtilityEvent[]
+  economies     RoundEconomy[]
+
+  @@index([date])
+  @@index([map])
+}
+
+// ============================================================
+// MATCH PLAYER (per-user-per-match stats)
+// ============================================================
+model MatchPlayer {
+  id            String  @id @default(cuid())
+  userId        String
+  matchId       String
+  steamId       String  // denormalized for parser lookups
+  team          String  // "CT", "T" (initial side)
+
+  // Core
+  kills         Int     @default(0)
+  deaths        Int     @default(0)
+  assists       Int     @default(0)
+  adr           Float   @default(0)
+  rating        Float   @default(0) // HLTV 2.0 style
+  kast          Float   @default(0) // kill/assist/survived/traded %
+  mvps          Int     @default(0)
+
+  // Aim
+  headshotKills Int     @default(0)
+  headshotPct   Float   @default(0)
+  firstBulletAcc Float  @default(0)
+  avgTimeToKill  Float  @default(0) // ms
+  crosshairPlacement Float @default(0) // %
+
+  // Contextual kills
+  pistolKills   Int     @default(0)
+  pistolDeaths  Int     @default(0)
+  ecoKills      Int     @default(0)
+  ecoDeaths     Int     @default(0)
+  forceBuyKills Int     @default(0)
+  forceBuyDeaths Int    @default(0)
+  fullBuyKills  Int     @default(0)
+  fullBuyDeaths Int     @default(0)
+
+  // Entry / Opening
+  entryAttempts Int     @default(0)
+  entryWins     Int     @default(0)
+  firstKills    Int     @default(0)
+  firstDeaths   Int     @default(0)
+
+  // Clutch
+  clutchAttempts Int    @default(0)
+  clutchWins     Int    @default(0)
+  clutch1v1Wins  Int    @default(0)
+  clutch1v2Wins  Int    @default(0)
+  clutch1v3Wins  Int    @default(0)
+
+  // Trading
+  tradesGiven   Int     @default(0)  // deaths traded by teammate
+  tradesMade    Int     @default(0)  // kills as trades
+
+  // Decision
+  overpeekDeaths Int    @default(0)
+  
+  // Utility
+  flashesThrown  Int    @default(0)
+  enemiesFlashed Int    @default(0)
+  flashAssists   Int    @default(0)
+  avgFlashDuration Float @default(0)
+  smokesThrown   Int    @default(0)
+  hesThrown      Int    @default(0)
+  heDamage       Int    @default(0)
+  molosThrown    Int    @default(0)
+  moloDamage     Int    @default(0)
+  utilityDamage  Int    @default(0)
+
+  user          User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  match         Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, matchId])
+  @@index([steamId])
+  @@index([matchId])
+}
+
+// ============================================================
+// ROUND
+// ============================================================
+model Round {
+  id          String  @id @default(cuid())
+  matchId     String
+  roundNum    Int
+  winner      String  // "CT" or "T"
+  reason      String  // "elimination", "bomb_exploded", "bomb_defused", "time"
+  roundType   String  // "pistol", "eco", "force_buy", "full_buy"
+  
+  // Win probability
+  wpStart     Float   @default(50)
+  wpEnd       Float   @default(50)
+  wpPeakShift Float   @default(0)
+
+  // State at end
+  aliveCT     Int     @default(0)
+  aliveT      Int     @default(0)
+  bombPlanted Boolean @default(false)
+
+  match       Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, roundNum])
+  @@index([matchId])
+}
+
+// ============================================================
+// KILL EVENT
+// ============================================================
+model KillEvent {
+  id             String  @id @default(cuid())
+  matchId        String
+  roundNum       Int
+  tick           Int
+
+  attackerSteamId String
+  victimSteamId   String
+  assisterSteamId String?
+
+  weapon         String
+  headshot       Boolean @default(false)
+  wallbang       Boolean @default(false)
+  noscope        Boolean @default(false)
+  thrusmoke      Boolean @default(false)
+  attackerBlind  Boolean @default(false)
+  penetrated     Int     @default(0)  // penetration count
+
+  // Derived
+  isEntry        Boolean @default(false)  // first kill of round
+  isTrade        Boolean @default(false)  // within 5s of teammate death
+  isClutchKill   Boolean @default(false)
+  wpShift        Float   @default(0)      // win probability delta
+
+  // Position at time of kill
+  attackerX      Float?
+  attackerY      Float?
+  attackerZ      Float?
+  victimX        Float?
+  victimY        Float?
+  victimZ        Float?
+
+  match          Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, roundNum])
+  @@index([attackerSteamId])
+  @@index([victimSteamId])
+}
+
+// ============================================================
+// DAMAGE EVENT
+// ============================================================
+model DamageEvent {
+  id              String  @id @default(cuid())
+  matchId         String
+  roundNum        Int
+  tick            Int
+  
+  attackerSteamId String
+  victimSteamId   String
+  
+  damage          Int
+  damageArmor     Int     @default(0)
+  weapon          String
+  hitgroup        Int     // 1=head 2=chest 3=stomach 4=leftarm 5=rightarm 6=leftleg 7=rightleg
+
+  match           Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, roundNum])
+  @@index([attackerSteamId])
+}
+
+// ============================================================
+// UTILITY EVENT
+// ============================================================
+model UtilityEvent {
+  id              String  @id @default(cuid())
+  matchId         String
+  roundNum        Int
+  tick            Int
+
+  playerSteamId   String
+  type            String  // "flashbang", "smokegrenade", "hegrenade", "molotov", "incgrenade", "decoy"
+
+  // Flash specific
+  enemiesFlashed  Int     @default(0)
+  totalBlindTime  Float   @default(0)
+  ledToKill       Boolean @default(false)
+
+  // HE/Molotov specific
+  totalDamage     Int     @default(0)
+  playersHit      Int     @default(0)
+
+  // Position
+  posX            Float?
+  posY            Float?
+  posZ            Float?
+
+  match           Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@index([matchId, roundNum])
+  @@index([playerSteamId])
+}
+
+// ============================================================
+// ROUND ECONOMY (per player per round)
+// ============================================================
+model RoundEconomy {
+  id              String  @id @default(cuid())
+  matchId         String
+  roundNum        Int
+  steamId         String
+  team            String
+
+  startMoney      Int     @default(0)
+  equipValue      Int     @default(0)
+  spent           Int     @default(0)
+
+  match           Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+
+  @@unique([matchId, roundNum, steamId])
+  @@index([matchId, roundNum])
+}
+
+// ============================================================
+// PLAYER STATS (aggregated, recalculated after each match)
+// ============================================================
+model PlayerStats {
+  id                  String  @id @default(cuid())
+  userId              String  @unique
+  
+  // Aggregate
+  totalMatches        Int     @default(0)
+  totalWins           Int     @default(0)
+  totalLosses         Int     @default(0)
+  winRate             Float   @default(0)
+  performanceScore    Float   @default(0)
+  
+  // Core averages (last 30 matches)
+  avgRating           Float   @default(0)
+  avgAdr              Float   @default(0)
+  avgKills            Float   @default(0)
+  avgDeaths           Float   @default(0)
+  avgAssists          Float   @default(0)
+  avgKast             Float   @default(0)
+
+  // Aim (last 30)
+  avgHeadshotPct      Float   @default(0)
+  avgFirstBulletAcc   Float   @default(0)
+  avgTimeToKill       Float   @default(0)
+  avgCrosshairPlace   Float   @default(0)
+
+  // Contextual win rates
+  pistolWinRate       Float   @default(0)
+  ecoWinRate          Float   @default(0)
+  forceBuyWinRate     Float   @default(0)
+  fullBuyWinRate      Float   @default(0)
+
+  // Decision
+  avgOverpeekRate     Float   @default(0)
+  avgFirstDeathPct    Float   @default(0)
+  avgTradeEfficiency  Float   @default(0)
+  duelFavorability    Float   @default(0)
+
+  // Utility
+  avgFlashSuccess     Float   @default(0)
+  avgFlashAssists     Float   @default(0)
+  avgUtilDamage       Float   @default(0)
+  utilityScore        Float   @default(0)
+
+  // Clutch
+  clutchRate          Float   @default(0)
+  clutch1v1Rate       Float   @default(0)
+  clutch1v2Rate       Float   @default(0)
+
+  // Risk profile
+  profilePrimary      String  @default("Unknown")
+  profileSecondary    String  @default("Unknown")
+  aggressionScore     Float   @default(50)
+  clutchScore         Float   @default(50)
+  supportScore        Float   @default(50)
+  entryScore          Float   @default(50)
+  lurkScore           Float   @default(50)
+  anchorScore         Float   @default(50)
+
+  // Growth
+  improvementSlope    Float   @default(0)
+  volatility          Float   @default(0)
+  stabilityScore      Float   @default(0)
+
+  // Map stats (JSON blob for flexibility)
+  mapStats            Json?   // { "de_mirage": { winRate, avgRating, matches }, ... }
+
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
