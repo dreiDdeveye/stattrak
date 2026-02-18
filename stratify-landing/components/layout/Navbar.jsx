@@ -40,7 +40,7 @@ export default function Navbar() {
               {l}
             </a>
           ))}
-          <a href="http://localhost:4000/api/auth/steam" style={{
+          <a href="/api/auth/steam" style={{
             display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 20px", borderRadius: 8,
             background: "linear-gradient(135deg, #00ffa3, #00d4ff)", color: "#06080e",
             fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "transform 0.2s, box-shadow 0.2s",
