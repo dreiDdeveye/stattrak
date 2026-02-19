@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useEffect } from "react";
 import { Icons } from "@/components/ui/Icons";
 
@@ -8,63 +7,61 @@ export default function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
-    const h = () => setScrolled(window.scrollY > 40);
+    const h = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", h, { passive: true });
     return () => window.removeEventListener("scroll", h);
   }, []);
 
-  const links = ["Features", "Stats", "Pricing", "FAQ"];
+  const links = ["Features", "How It Works", "FAQ"];
 
   return (
     <nav style={{
-      position: "fixed", top: 0, left: 0, right: 0, zIndex: 100, padding: "0 24px",
-      background: scrolled ? "rgba(6,8,14,0.92)" : "transparent",
-      borderBottom: scrolled ? "1px solid rgba(255,255,255,0.06)" : "1px solid transparent",
-      backdropFilter: scrolled ? "blur(20px)" : "none", transition: "all 0.4s ease",
+      position: "fixed", top: scrolled ? 0 : 12, left: "50%", transform: "translateX(-50%)",
+      zIndex: 100, width: scrolled ? "100%" : "min(92%, 1100px)",
+      background: scrolled ? "rgba(3,3,5,0.85)" : "rgba(255,255,255,0.04)",
+      borderRadius: scrolled ? 0 : 14,
+      border: scrolled ? "none" : "1px solid rgba(255,255,255,0.06)",
+      borderBottom: scrolled ? "1px solid rgba(255,255,255,0.05)" : undefined,
+      backdropFilter: "blur(20px) saturate(1.5)",
+      transition: "all 0.4s cubic-bezier(0.16,1,0.3,1)",
+      padding: "0 24px",
     }}>
-      <div style={{ maxWidth: 1200, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 64 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, display: "flex", alignItems: "center", justifyContent: "center", background: "linear-gradient(135deg, #00ffa3, #00d4ff)" }}>
-            <Icons.Target s={17} c="#06080e" />
-          </div>
-          <span style={{ fontSize: 18, fontWeight: 800, letterSpacing: "-0.04em" }}>
-            <span style={{ color: "#00ffa3" }}>StatTrak</span>
-            
+      <div style={{ maxWidth: 1100, margin: "0 auto", display: "flex", alignItems: "center", justifyContent: "space-between", height: 56 }}>
+        <a href="/" style={{ display: "flex", alignItems: "center", gap: 9, textDecoration: "none" }}>
+          <img src="/logo.png" alt="StatTrak" style={{ width: 28, height: 28, borderRadius: 6, objectFit: "contain" }} />
+          <span style={{ fontSize: 15, fontWeight: 700, letterSpacing: "-0.02em", color: "#fff" }}>
+            stat<span style={{ color: "var(--accent)" }}>trak</span>
           </span>
-        </div>
+        </a>
 
-        <div className="nav-links" style={{ display: "flex", alignItems: "center", gap: 32 }}>
+        <div className="nav-links" style={{ display: "flex", alignItems: "center", gap: 2 }}>
           {links.map(l => (
-            <a key={l} href={`#${l.toLowerCase()}`} style={{ color: "rgba(255,255,255,0.5)", fontSize: 13, fontWeight: 500, textDecoration: "none", transition: "color 0.2s" }}
-              onMouseEnter={e => e.target.style.color = "#fff"} onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.5)"}>
+            <a key={l} href={`#${l.toLowerCase().replace(/ /g, "-")}`} style={{
+              color: "var(--text-3)", fontSize: 13, fontWeight: 500, textDecoration: "none",
+              padding: "6px 12px", borderRadius: 8, transition: "all 0.2s",
+            }}
+              onMouseEnter={e => { e.target.style.color = "#fff"; e.target.style.background = "rgba(255,255,255,0.06)"; }}
+              onMouseLeave={e => { e.target.style.color = "var(--text-3)"; e.target.style.background = "transparent"; }}>
               {l}
             </a>
           ))}
+          <div style={{ width: 1, height: 16, background: "rgba(255,255,255,0.08)", margin: "0 8px" }} />
           <a href="/api/auth/steam" style={{
-            display: "inline-flex", alignItems: "center", gap: 8, padding: "8px 20px", borderRadius: 8,
-            background: "linear-gradient(135deg, #00ffa3, #00d4ff)", color: "#06080e",
-            fontSize: 13, fontWeight: 700, textDecoration: "none", transition: "transform 0.2s, box-shadow 0.2s",
-            boxShadow: "0 0 20px rgba(0,255,163,0.15)",
+            display: "inline-flex", alignItems: "center", gap: 6, padding: "7px 16px", borderRadius: 8,
+            background: "var(--accent)", color: "#030305",
+            fontSize: 12, fontWeight: 700, textDecoration: "none", transition: "all 0.2s",
+            letterSpacing: "0.01em",
           }}
-            onMouseEnter={e => { e.target.style.transform = "translateY(-1px)"; e.target.style.boxShadow = "0 0 30px rgba(0,255,163,0.3)"; }}
-            onMouseLeave={e => { e.target.style.transform = "translateY(0)"; e.target.style.boxShadow = "0 0 20px rgba(0,255,163,0.15)"; }}>
-            <Icons.Steam s={14} c="#06080e" /> Sign in with Steam
+            onMouseEnter={e => { e.currentTarget.style.boxShadow = "0 0 20px rgba(34,255,187,0.3)"; }}
+            onMouseLeave={e => { e.currentTarget.style.boxShadow = "none"; }}>
+            <Icons.Steam s={12} c="#030305" /> Sign in
           </a>
         </div>
 
         <button className="mobile-menu-btn" onClick={() => setMobileOpen(!mobileOpen)} style={{ display: "none", background: "none", border: "none", color: "#fff", cursor: "pointer" }}>
-          {mobileOpen ? <Icons.X s={24} /> : <Icons.Menu s={24} />}
+          {mobileOpen ? <Icons.X s={20} /> : <Icons.Menu s={20} />}
         </button>
       </div>
-
-      {mobileOpen && (
-        <div style={{ padding: "16px 0 24px", display: "flex", flexDirection: "column", gap: 12, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-          {links.map(l => (
-            <a key={l} href={`#${l.toLowerCase()}`} onClick={() => setMobileOpen(false)}
-              style={{ color: "rgba(255,255,255,0.6)", fontSize: 15, fontWeight: 500, textDecoration: "none", padding: "8px 0" }}>{l}</a>
-          ))}
-        </div>
-      )}
     </nav>
   );
 }
